@@ -3,3 +3,6 @@ This project attempts to [implement improvement suggestions](https://github.com/
 
 # Goals
 + Remove internal binding to SOCK and allow Transport to be fully implemented by users.
+
+# Progress
+1. Attempt to logically separate ENET.
