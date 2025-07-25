@@ -6,3 +6,5 @@ This project attempts to [implement improvement suggestions](https://github.com/
 
 # Progress
 1. Attempt to logically separate ENET.
+
+2. Write [Transport abstract structure](./enet/transport.h):
