@@ -32,12 +32,16 @@
  * SOFTWARE.
  *
  */
+#ifndef ENET_INCLUDE_H
+#define ENET_INCLUDE_H
 
+#include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <time.h>
+#include "transport.h"
 
 #define ENET_VERSION_MAJOR 2
 #define ENET_VERSION_MINOR 6
@@ -61,6 +65,44 @@
 // !
 // =======================================================================//
 
+#if defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
+
+  #define ENET_NET_TO_HOST_16(x) (x)
+  #define ENET_NET_TO_HOST_32(x) (x)
+  #define ENET_HOST_TO_NET_16(x) (x)
+  #define ENET_HOST_TO_NET_32(x) (x)
+
+#else
+
+  static inline uint16_t ENET_NET_TO_HOST_16(uint16_t net)
+  {
+      return (uint16_t)((net << 8) | (net >> 8));
+  }
+
+  static inline uint32_t ENET_NET_TO_HOST_32(uint32_t net)
+  {
+      return ((net << 24) & 0xFF000000) |
+             ((net <<  8) & 0x00FF0000) |
+             ((net >>  8) & 0x0000FF00) |
+             ((net >> 24) & 0x000000FF);
+  }
+
+  // 反向
+  static inline uint16_t ENET_HOST_TO_NET_16(uint16_t host)
+  {
+      return (uint16_t)((host << 8) | (host >> 8));
+  }
+
+  static inline uint32_t ENET_HOST_TO_NET_32(uint32_t host)
+  {
+      return ((host << 24) & 0xFF000000) |
+             ((host <<  8) & 0x00FF0000) |
+             ((host >>  8) & 0x0000FF00) |
+             ((host >> 24) & 0x000000FF);
+  }
+
+#endif
+
 #if defined(_WIN32)
     #if defined(_MSC_VER) && defined(ENET_IMPLEMENTATION)
         #pragma warning (disable: 4267) // size_t to int conversion
@@ -71,7 +113,7 @@
 
     #ifndef ENET_NO_PRAGMA_LINK
     #ifndef  __GNUC__
-    #pragma comment(lib, "ws2_32.lib")
+    // #pragma comment(lib, "ws2_32.lib")
     #pragma comment(lib, "winmm.lib")
     #endif
     #endif
@@ -89,11 +131,11 @@
     #define _WIN32_WINNT 0x0600
     #endif
     #endif
-
-    #include <winsock2.h>
-    #include <ws2tcpip.h>
+	#include <windows.h>
+    // #include <winsock2.h>
+    // #include <ws2tcpip.h>
     #include <mmsystem.h>
-    #include <ws2ipdef.h>
+    // #include <ws2ipdef.h>
 
     #include <intrin.h>
 
@@ -107,14 +149,14 @@
     #define CLOCK_MONOTONIC 0
     #endif
 
-    typedef SOCKET ENetSocket;
-    #define ENET_SOCKET_NULL INVALID_SOCKET
+    // typedef SOCKET ENetSocket;
+    // #define ENET_SOCKET_NULL INVALID_SOCKET
 
-    #define ENET_HOST_TO_NET_16(value) (htons(value))
-    #define ENET_HOST_TO_NET_32(value) (htonl(value))
+    // #define ENET_HOST_TO_NET_16(value) (htons(value))
+    // #define ENET_HOST_TO_NET_32(value) (htonl(value))
 
-    #define ENET_NET_TO_HOST_16(value) (ntohs(value))
-    #define ENET_NET_TO_HOST_32(value) (ntohl(value))
+    // #define ENET_NET_TO_HOST_16(value) (ntohs(value))
+    // #define ENET_NET_TO_HOST_32(value) (ntohl(value))
 
     typedef struct {
         size_t dataLength;
@@ -133,21 +175,21 @@
     #define ENET_API extern
     #endif // ENET_DLL
 
-    typedef fd_set ENetSocketSet;
+    // typedef fd_set ENetSocketSet;
 
-    #define ENET_SOCKETSET_EMPTY(sockset)          FD_ZERO(&(sockset))
-    #define ENET_SOCKETSET_ADD(sockset, socket)    FD_SET(socket, &(sockset))
-    #define ENET_SOCKETSET_REMOVE(sockset, socket) FD_CLR(socket, &(sockset))
-    #define ENET_SOCKETSET_CHECK(sockset, socket)  FD_ISSET(socket, &(sockset))
+    // #define ENET_SOCKETSET_EMPTY(sockset)          FD_ZERO(&(sockset))
+    // #define ENET_SOCKETSET_ADD(sockset, socket)    FD_SET(socket, &(sockset))
+    // #define ENET_SOCKETSET_REMOVE(sockset, socket) FD_CLR(socket, &(sockset))
+    // #define ENET_SOCKETSET_CHECK(sockset, socket)  FD_ISSET(socket, &(sockset))
 #else
     #include <sys/types.h>
     #include <sys/ioctl.h>
     #include <sys/time.h>
-    #include <sys/socket.h>
-    #include <poll.h>
-    #include <arpa/inet.h>
-    #include <netinet/in.h>
-    #include <netinet/tcp.h>
+    // #include <sys/socket.h>
+    // #include <poll.h>
+    // #include <arpa/inet.h>
+    // #include <netinet/in.h>
+    // #include <netinet/tcp.h>
     #include <netdb.h>
     #include <unistd.h>
     #include <string.h>
@@ -168,15 +210,15 @@
     #define ENET_BUFFER_MAXIMUM MSG_MAXIOVLEN
     #endif
 
-    typedef int ENetSocket;
+    // typedef int ENetSocket;
 
-    #define ENET_SOCKET_NULL -1
+    // #define ENET_SOCKET_NULL -1
 
-    #define ENET_HOST_TO_NET_16(value) (htons(value)) /**< macro that converts host to net byte-order of a 16-bit value */
-    #define ENET_HOST_TO_NET_32(value) (htonl(value)) /**< macro that converts host to net byte-order of a 32-bit value */
+    // #define ENET_HOST_TO_NET_16(value) (htons(value)) /**< macro that converts host to net byte-order of a 16-bit value */
+    // #define ENET_HOST_TO_NET_32(value) (htonl(value)) /**< macro that converts host to net byte-order of a 32-bit value */
 
-    #define ENET_NET_TO_HOST_16(value) (ntohs(value)) /**< macro that converts net to host byte-order of a 16-bit value */
-    #define ENET_NET_TO_HOST_32(value) (ntohl(value)) /**< macro that converts net to host byte-order of a 32-bit value */
+    // #define ENET_NET_TO_HOST_16(value) (ntohs(value)) /**< macro that converts net to host byte-order of a 16-bit value */
+    // #define ENET_NET_TO_HOST_32(value) (ntohl(value)) /**< macro that converts net to host byte-order of a 32-bit value */
 
     typedef struct {
         void * data;
@@ -186,12 +228,12 @@
     #define ENET_CALLBACK
     #define ENET_API extern
 
-    typedef fd_set ENetSocketSet;
+    // typedef fd_set ENetSocketSet;
 
-    #define ENET_SOCKETSET_EMPTY(sockset)          FD_ZERO(&(sockset))
-    #define ENET_SOCKETSET_ADD(sockset, socket)    FD_SET(socket, &(sockset))
-    #define ENET_SOCKETSET_REMOVE(sockset, socket) FD_CLR(socket, &(sockset))
-    #define ENET_SOCKETSET_CHECK(sockset, socket)  FD_ISSET(socket, &(sockset))
+    // #define ENET_SOCKETSET_EMPTY(sockset)          FD_ZERO(&(sockset))
+    // #define ENET_SOCKETSET_ADD(sockset, socket)    FD_SET(socket, &(sockset))
+    // #define ENET_SOCKETSET_REMOVE(sockset, socket) FD_CLR(socket, &(sockset))
+    // #define ENET_SOCKETSET_CHECK(sockset, socket)  FD_ISSET(socket, &(sockset))
 #endif
 
 #ifdef __GNUC__
@@ -214,12 +256,12 @@
 #define ENET_DIFFERENCE(x, y) ((x) < (y) ? (y) - (x) : (x) - (y))
 
 #define ENET_IPV6           1
-static const struct in6_addr enet_v4_anyaddr   = {{{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00 }}};
-static const struct in6_addr enet_v4_noaddr    = {{{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }}};
-static const struct in6_addr enet_v4_localhost = {{{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0x7f, 0x00, 0x00, 0x01 }}};
-static const struct in6_addr enet_v6_anyaddr   = {{{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }}};
-static const struct in6_addr enet_v6_noaddr    = {{{ 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }}};
-static const struct in6_addr enet_v6_localhost = {{{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01 }}};
+// static const struct in6_addr enet_v4_anyaddr   = {{{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00 }}};
+// static const struct in6_addr enet_v4_noaddr    = {{{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }}};
+// static const struct in6_addr enet_v4_localhost = {{{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0x7f, 0x00, 0x00, 0x01 }}};
+// static const struct in6_addr enet_v6_anyaddr   = {{{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }}};
+// static const struct in6_addr enet_v6_noaddr    = {{{ 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }}};
+// static const struct in6_addr enet_v6_localhost = {{{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01 }}};
 #define ENET_HOST_ANY       in6addr_any
 #define ENET_HOST_BROADCAST 0xFFFFFFFFU
 #define ENET_PORT_ANY       0
@@ -534,9 +576,7 @@ extern "C" {
      * address is updated from ENET_HOST_BROADCAST to the server's actual IP address.
      */
     typedef struct _ENetAddress {
-        struct in6_addr host;
-        enet_uint16 port;
-        enet_uint16 sin6_scope_id;
+        enet_uint64 id;
     } ENetAddress;
 
     #define in6_equal(in6_addr_a, in6_addr_b) (memcmp(&in6_addr_a, &in6_addr_b, sizeof(struct in6_addr)) == 0)
@@ -786,7 +826,8 @@ extern "C" {
      *  @sa enet_host_bandwidth_throttle()
      */
     typedef struct _ENetHost {
-        ENetSocket            socket;
+        enet_transport_t      *transport;
+		void					*sockobj;
         ENetAddress           address;           /**< Internet address of the host */
         enet_uint32           incomingBandwidth; /**< downstream bandwidth of the host */
         enet_uint32           outgoingBandwidth; /**< upstream bandwidth of the host */
@@ -907,78 +948,85 @@ extern "C" {
     /** Returns the monotonic time in milliseconds. Its initial value is unspecified unless otherwise set. */
     ENET_API enet_uint32 enet_time_get(void);
 
-    /** ENet socket functions */
-    ENET_API ENetSocket enet_socket_create(ENetSocketType);
-    ENET_API int        enet_socket_bind(ENetSocket, const ENetAddress *);
-    ENET_API int        enet_socket_get_address(ENetSocket, ENetAddress *);
-    ENET_API int        enet_socket_listen(ENetSocket, int);
-    ENET_API ENetSocket enet_socket_accept(ENetSocket, ENetAddress *);
-    ENET_API int        enet_socket_connect(ENetSocket, const ENetAddress *);
-    ENET_API int        enet_socket_send(ENetSocket, const ENetAddress *, const ENetBuffer *, size_t);
-    ENET_API int        enet_socket_receive(ENetSocket, ENetAddress *, ENetBuffer *, size_t);
-    ENET_API int        enet_socket_wait(ENetSocket, enet_uint32 *, enet_uint64);
-    ENET_API int        enet_socket_set_option(ENetSocket, ENetSocketOption, int);
-    ENET_API int        enet_socket_get_option(ENetSocket, ENetSocketOption, int *);
-    ENET_API int        enet_socket_shutdown(ENetSocket, ENetSocketShutdown);
-    ENET_API void       enet_socket_destroy(ENetSocket);
-    ENET_API int        enet_socketset_select(ENetSocket, ENetSocketSet *, ENetSocketSet *, enet_uint32);
+	int enet_transport_send(
+		enet_transport_t *transport,
+		void *sockobj,
+		enet_address_t peer,
+		const ENetBuffer *buffers,
+		size_t bufferCount);
+//     /** ENet socket functions */
+//     ENET_API ENetSocket enet_socket_create(ENetSocketType);
+//     ENET_API int        enet_socket_bind(ENetSocket, const ENetAddress *);
+//     ENET_API int        enet_socket_get_address(ENetSocket, ENetAddress *);
+//     ENET_API int        enet_socket_listen(ENetSocket, int);
+//     ENET_API ENetSocket enet_socket_accept(ENetSocket, ENetAddress *);
+//     ENET_API int        enet_socket_connect(ENetSocket, const ENetAddress *);
+//     ENET_API int        enet_socket_send(ENetSocket, const ENetAddress *, const ENetBuffer *, size_t);
+//     ENET_API int        enet_socket_receive(ENetSocket, ENetAddress *, ENetBuffer *, size_t);
+//     ENET_API int        enet_socket_wait(ENetSocket, enet_uint32 *, enet_uint64);
+//     ENET_API int        enet_socket_set_option(ENetSocket, ENetSocketOption, int);
+//     ENET_API int        enet_socket_get_option(ENetSocket, ENetSocketOption, int *);
+//     ENET_API int        enet_socket_shutdown(ENetSocket, ENetSocketShutdown);
+//     ENET_API void       enet_socket_destroy(ENetSocket);
+//     ENET_API int        enet_socketset_select(ENetSocket, ENetSocketSet *, ENetSocketSet *, enet_uint32);
 
-    /** Attempts to parse the printable form of the IP address in the parameter hostName
-        and sets the host field in the address parameter if successful.
-        @param address destination to store the parsed IP address
-        @param hostName IP address to parse
-        @retval 0 on success
-        @retval < 0 on failure
-        @returns the address of the given hostName in address on success
-    */
-    ENET_API int enet_address_set_host_ip_old(ENetAddress * address, const char * hostName);
+//     /** Attempts to parse the printable form of the IP address in the parameter hostName
+//         and sets the host field in the address parameter if successful.
+//         @param address destination to store the parsed IP address
+//         @param hostName IP address to parse
+//         @retval 0 on success
+//         @retval < 0 on failure
+//         @returns the address of the given hostName in address on success
+//     */
+//     ENET_API int enet_address_set_host_ip_old(ENetAddress * address, const char * hostName);
 
-    /** Attempts to resolve the host named by the parameter hostName and sets
-        the host field in the address parameter if successful.
-        @param address destination to store resolved address
-        @param hostName host name to lookup
-        @retval 0 on success
-        @retval < 0 on failure
-        @returns the address of the given hostName in address on success
-    */
-    ENET_API int enet_address_set_host_old(ENetAddress * address, const char * hostName);
+//     /** Attempts to resolve the host named by the parameter hostName and sets
+//         the host field in the address parameter if successful.
+//         @param address destination to store resolved address
+//         @param hostName host name to lookup
+//         @retval 0 on success
+//         @retval < 0 on failure
+//         @returns the address of the given hostName in address on success
+//     */
+//     ENET_API int enet_address_set_host_old(ENetAddress * address, const char * hostName);
 
-    /** Gives the printable form of the IP address specified in the address parameter.
-        @param address    address printed
-        @param hostName   destination for name, must not be NULL
-        @param nameLength maximum length of hostName.
-        @returns the null-terminated name of the host in hostName on success
-        @retval 0 on success
-        @retval < 0 on failure
-    */
-    ENET_API int enet_address_get_host_ip_old(const ENetAddress * address, char * hostName, size_t nameLength);
+//     /** Gives the printable form of the IP address specified in the address parameter.
+//         @param address    address printed
+//         @param hostName   destination for name, must not be NULL
+//         @param nameLength maximum length of hostName.
+//         @returns the null-terminated name of the host in hostName on success
+//         @retval 0 on success
+//         @retval < 0 on failure
+//     */
+//     ENET_API int enet_address_get_host_ip_old(const ENetAddress * address, char * hostName, size_t nameLength);
 
-    /** Attempts to do a reverse lookup of the host field in the address parameter.
-        @param address    address used for reverse lookup
-        @param hostName   destination for name, must not be NULL
-        @param nameLength maximum length of hostName.
-        @returns the null-terminated name of the host in hostName on success
-        @retval 0 on success
-        @retval < 0 on failure
-    */
-    ENET_API int enet_address_get_host_old(const ENetAddress * address, char * hostName, size_t nameLength);
+//     /** Attempts to do a reverse lookup of the host field in the address parameter.
+//         @param address    address used for reverse lookup
+//         @param hostName   destination for name, must not be NULL
+//         @param nameLength maximum length of hostName.
+//         @returns the null-terminated name of the host in hostName on success
+//         @retval 0 on success
+//         @retval < 0 on failure
+//     */
+//     ENET_API int enet_address_get_host_old(const ENetAddress * address, char * hostName, size_t nameLength);
 
-    ENET_API int enet_address_set_host_ip_new(ENetAddress * address, const char * hostName);
-    ENET_API int enet_address_set_host_new(ENetAddress * address, const char * hostName);
-    ENET_API int enet_address_get_host_ip_new(const ENetAddress * address, char * hostName, size_t nameLength);
-    ENET_API int enet_address_get_host_new(const ENetAddress * address, char * hostName, size_t nameLength);
+//     ENET_API int enet_address_set_host_ip_new(ENetAddress * address, const char * hostName);
+//     ENET_API int enet_address_set_host_new(ENetAddress * address, const char * hostName);
+//     ENET_API int enet_address_get_host_ip_new(const ENetAddress * address, char * hostName, size_t nameLength);
+//     ENET_API int enet_address_get_host_new(const ENetAddress * address, char * hostName, size_t nameLength);
 
-#ifdef ENET_FEATURE_ADDRESS_MAPPING
-#define enet_address_set_host_ip enet_address_set_host_ip_new
-#define enet_address_set_host    enet_address_set_host_new
-#define enet_address_get_host_ip enet_address_get_host_ip_new
-#define enet_address_get_host    enet_address_get_host_new
-#else
-#define enet_address_set_host_ip enet_address_set_host_ip_old
-#define enet_address_set_host    enet_address_set_host_old
-#define enet_address_get_host_ip enet_address_get_host_ip_old
-#define enet_address_get_host    enet_address_get_host_old
-#endif
+		int enet_address_set_host(ENetAddress *address, enet_address_t id);
+// #ifdef ENET_FEATURE_ADDRESS_MAPPING
+// #define enet_address_set_host_ip enet_address_set_host_ip_new
+// #define enet_address_set_host    enet_address_set_host_new
+// #define enet_address_get_host_ip enet_address_get_host_ip_new
+// #define enet_address_get_host    enet_address_get_host_new
+// #else
+// #define enet_address_set_host_ip enet_address_set_host_ip_old
+// #define enet_address_set_host    enet_address_set_host_old
+// #define enet_address_get_host_ip enet_address_get_host_ip_old
+// #define enet_address_get_host    enet_address_get_host_old
+// #endif
 
     ENET_API enet_uint32 enet_host_get_peers_count(ENetHost *);
     ENET_API enet_uint32 enet_host_get_packets_sent(ENetHost *);
@@ -1009,7 +1057,7 @@ extern "C" {
     ENET_API ENetPacket * enet_packet_create_offset(const void *, size_t, size_t, enet_uint32);
     ENET_API enet_uint32  enet_crc32(const ENetBuffer *, size_t);
 
-    ENET_API ENetHost * enet_host_create(const ENetAddress *, size_t, size_t, enet_uint32, enet_uint32);
+    ENET_API ENetHost * enet_host_create(enet_transport_t*, void*, size_t, size_t, enet_uint32, enet_uint32);
     ENET_API void       enet_host_destroy(ENetHost *);
     ENET_API ENetPeer * enet_host_connect(ENetHost *, const ENetAddress *, size_t, enet_uint32);
     ENET_API int        enet_host_check_events(ENetHost *, ENetEvent *);
@@ -1054,5 +1102,4 @@ extern "C" {
 }
 #endif
 
-#if defined(ENET_IMPLEMENTATION) && !defined(ENET_IMPLEMENTATION_DONE)
-#endif // ENET_IMPLEMENTATION
+#endif // ENET_INCLUDE_H
